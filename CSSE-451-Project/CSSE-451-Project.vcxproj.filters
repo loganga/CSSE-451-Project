@@ -35,13 +35,7 @@
     <ClInclude Include="RenderEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Helpers\glew.h">
-      <Filter>Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="Helpers\glxew.h">
-      <Filter>Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="Helpers\wglew.h">
+    <ClInclude Include="Helpers\GLHelper.h">
       <Filter>Helpers</Filter>
     </ClInclude>
   </ItemGroup>

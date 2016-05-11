@@ -7,8 +7,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <SFML/Window.hpp>
+
+#define GLEW
+//#define GL3W
+#ifdef GLEW
+#define GLEW_STATIC
 #include <GL/glew.h>
-#include <GL/wglew.h>
+#endif
+#ifdef GL3W
+#include <GL/gl3w.h>
+#endif
 
 #include "WorldState.h"
 #include "RenderEngine.h"
@@ -57,6 +65,7 @@ public:
 private:
 	sf::Window* window;
 	sf::Clock clock;
+	
 
 	RenderEngine engine;
 	WorldState state;

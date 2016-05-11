@@ -138,21 +138,22 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Users\Gene\Downloads\glew-1.13.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>glew32s.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\Gene\Documents\Visual Studio 2013\Projects\CSSE-451-Project\CSSE-451-Project\Helpers;C:\Users\Gene\Downloads\glew-1.13.0\lib\Release\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Helpers\glew.h" />
-    <ClInclude Include="Helpers\glxew.h" />
-    <ClInclude Include="Helpers\wglew.h" />
+    <ClInclude Include="Helpers\GLHelper.h" />
     <ClInclude Include="Particle.h" />
     <ClInclude Include="RenderEngine.h" />
     <ClInclude Include="WorldState.h" />
