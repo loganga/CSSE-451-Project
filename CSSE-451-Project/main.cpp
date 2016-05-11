@@ -4,11 +4,21 @@
 #define TARGET_FPS 60
 #define PRINT_FPS_INTERVAL 10.0f
 
+#define GL3W
+#ifdef GLEW
+#define GLEW_STATIC
+#include "glew.h"
+#endif
+#ifdef GL3W
+#include "gl3w.h"
+#endif
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <SFML/Window.hpp>
-#include <GL/glew.h>
-#include <GL/wglew.h>
+
+
 
 #include "WorldState.h"
 #include "RenderEngine.h"
