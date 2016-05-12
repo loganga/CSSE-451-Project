@@ -10,12 +10,15 @@ public:
 	//This vector of particles will have to be a complex tree structure of some sort
 	int maxParticles;
 //	Particle particles[maxParticles];
-	sf::Vector3<GLfloat> minBound;
-	sf::Vector3<GLfloat> maxBound;
+//	std::vector<Particle> particles;
+	std::vector<GLfloat> particleVerts; // 3 per particle
+//	std::vector<GLfloat> particleMass; // 1 per particle
+	glm::vec3 minBound;
+	glm::vec3 maxBound;
 
 	Scene() {}
 
-	Scene(sf::Vector3<float> minBound, sf::Vector3<float> maxBound, const int maxParticles)
+	Scene(glm::vec3 minBound, glm::vec3 maxBound, const int maxParticles)
 	{
 		this->minBound = minBound;
 		this->maxBound = maxBound;
@@ -30,6 +33,11 @@ public:
 	void generateRandomParticles(GLuint amount)
 	{
 		//TODO
+	}
+
+	GLfloat* getVertices()
+	{
+		return &particleVerts[0];
 	}
 
 	void getElementBytes()

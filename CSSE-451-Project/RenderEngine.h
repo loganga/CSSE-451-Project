@@ -12,9 +12,16 @@
 #include "Helpers/glew.h"
 #include "Scene.h"
 
+#define MAX_PARTICLES 1000
+
 class RenderEngine
 {
 public:
+	// OVERALL TODO: Add shader loading and uniform uploads. Write shaders.
+	// Refactor a bunch of the Particle data to be in the Scene class.
+	// Updates for particles should be called through the WorldState and
+	// delegated to the scene.
+
 	RenderEngine()
 	{
 		initialized = false;
@@ -33,24 +40,73 @@ public:
 		}
 		printf("OpenGL version %.1f is supported.\n", ver);
 
+		generateParticles(*state.scene);
+		updateParticles();
+
 		glEnable(GL_DEPTH_TEST);
 
+		setupBuffers();
+		buildRenderBuffers();
 	}
 
 	void display(WorldState state)
 	{
-		
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		checkGLError("clear");
+
+		updateParticles();
+		updateBuffers();
+
+		glVertexAttribDivisor(0, 0); // particles vertices : always reuse the same 4 vertices -> 0
+		glVertexAttribDivisor(1, 1); // positions : one per quad (its center) -> 1
+		glVertexAttribDivisor(2, 1); // color : one per quad -> 1
+
+		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, particleCount);
 	}
 
 	void setupShader()
 	{
-		
+		// TODO: DOES NOTHING, NEEDS SHADERS
 	}
 
-	// TODO: take in a scene object as a reference
 	void buildRenderBuffers()
 	{
-		
+		// 1rst attribute buffer : vertices
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+		glVertexAttribPointer(
+			0, // attribute. No particular reason for 0, but must match the layout in the shader.
+			3, // size
+			GL_FLOAT, // type
+			GL_FALSE, // normalized?
+			0, // stride
+			(void*)0 // array buffer offset
+			);
+
+		// 2nd attribute buffer : positions of particles' centers
+		glEnableVertexAttribArray(1);
+		glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
+		glVertexAttribPointer(
+			1, // attribute. No particular reason for 1, but must match the layout in the shader.
+			4, // size : x + y + z + size => 4
+			GL_FLOAT, // type
+			GL_FALSE, // normalized?
+			0, // stride
+			(void*)0 // array buffer offset
+			);
+
+		// 3rd attribute buffer : particles' colors
+		glEnableVertexAttribArray(2);
+		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+		glVertexAttribPointer(
+			2, // attribute. No particular reason for 1, but must match the layout in the shader.
+			4, // size : r + g + b + a => 4
+			GL_UNSIGNED_BYTE, // type
+			GL_TRUE, // normalized? *** YES, this means that the unsigned char[4] will be accessible with a vec4 (floats) in the shader ***
+			0, // stride
+			(void*)0 // array buffer offset
+			);
 	}
 
 	~RenderEngine()
@@ -65,46 +121,99 @@ private:
 	WorldState state;
 	bool initialized;
 	GLuint vertexArray;
+	GLuint vertexBuffer;
 
-	// TODO: take in a scene object as a reference
-	void setupBuffers(Scene &s)
+	GLuint positionBuffer;
+	GLfloat* positionBufferData = new GLfloat[MAX_PARTICLES * 4];
+
+	GLuint colorBuffer;
+	GLubyte* colorBufferData = new GLubyte[MAX_PARTICLES * 4];
+
+	// common vertex data quad, positions are what differ
+	const GLfloat vertexBufferData[12] = {
+		-0.5f, -0.5f, 0.0f,
+		0.5f, -0.5f, 0.0f,
+		-0.5f, 0.5f, 0.0f,
+		0.5f, 0.5f, 0.0f,
+	};
+
+	int particleCount;
+	// should probably be in its own class rather than a struct
+	struct Particle
 	{
-		glGenVertexArrays(1, &vertexArray);
-		glBindVertexArray(vertexArray);
+		glm::vec3 pos, vel;
+		unsigned char r, g, b, a;
+		float size, angle, weight;
+	};
+	Particle particles[MAX_PARTICLES];
 
-		GLuint idBuffer;
-		GLint idSlot = 0;
+	void setupBuffers()
+	{
+		glGenBuffers(1, &vertexBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertexBufferData), vertexBufferData, GL_STATIC_DRAW);
 
-		//upload element ids only
-		glGenBuffers(1, &idBuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, idBuffer);
-		glBufferData(GL_ARRAY_BUFFER, s.getElementBytes(), &s.getElements()[0], GL_STATIC_DRAW);
-		glEnableVertexAttribArray(idSlot);
-		glVertexAttribPointer(idSlot, 1, GL_UNSIGNED_INT, GL_FALSE, 0, 0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
+		glGenBuffers(1, &positionBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
+		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
 
-		//		//quad for render to texture
-		//		static const GLfloat quadVertexData[] = {
-		//			-1.0f, -1.0f, 0.0f,
-		//			1.0f, -1.0f, 0.0f,
-		//			1.0f, 1.0f, 0.0f,
-		//			-1.0f, -1.0f, 0.0f,
-		//			1.0f, 1.0f, 0.0f,
-		//			-1.0f, 1.0f, 0.0f,
-		//		};
-		//		checkGLError("id buffer");
-		//
-		//		glGenVertexArrays(1, &quadVertexArray);
-		//		glBindVertexArray(quadVertexArray);
-		//		GLuint quadVertexBuffer;
-		//		glGenBuffers(1, &quadVertexBuffer);
-		//		glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
-		//		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertexData), quadVertexData, GL_STATIC_DRAW);
-		//		glEnableVertexAttribArray(glGetAttribLocation(textureShader, "pos"));
-		//		glVertexAttribPointer(glGetAttribLocation(textureShader, "pos"), 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glGenBuffers(1, &colorBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
 
 		checkGLError("quad buffer");
+	}
+
+	void updateBuffers()
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
+		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, particleCount * sizeof(GLfloat) * 4, positionBufferData);
+
+		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, particleCount * sizeof(GLubyte) * 4, colorBufferData);
+	}
+
+	void generateParticles(Scene &s)
+	{
+		for (int i = 0; i < MAX_PARTICLES; i++)
+		{
+			// generate random floats for x and y, leave z 0.
+			float x = rand() % (s.minBound[0] - s.maxBound[0] + 1) + s.minBound[0];
+			float z = rand() % (s.minBound[2] - s.maxBound[2] + 1) + s.minBound[2];
+			particles[i].pos = glm::vec3(x, 0.0f, z);
+			particles[i].size = 0.1f;
+			particles[i].r = 0.0f;
+			particles[i].g = 0.0f;
+			particles[i].b = 1.0f;
+			particles[i].a = 1.0f;
+			particles[i].vel = glm::vec3(0.0f);
+
+			particleCount++;
+		}
+	}
+
+	void updateParticles()
+	{
+		for (int i = 0; i < MAX_PARTICLES; i++)
+		{
+			Particle& p = particles[i];
+			// do physics simulations here!
+
+			// Use this when camera data has been made available in RenderEngine
+//			p.distFromCam = glm::length2(p.pos - cameraPosition);
+
+			positionBufferData[4 * particleCount + 0] = p.pos.x;
+			positionBufferData[4 * particleCount + 1] = p.pos.y;
+			positionBufferData[4 * particleCount + 2] = p.pos.z;
+			positionBufferData[4 * particleCount + 3] = p.size;
+
+			colorBufferData[4 * particleCount + 0] = p.r;
+			colorBufferData[4 * particleCount + 1] = p.g;
+			colorBufferData[4 * particleCount + 2] = p.b;
+			colorBufferData[4 * particleCount + 3] = p.a;
+		}
 	}
 
 	float initLoader()

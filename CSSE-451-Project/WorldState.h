@@ -2,9 +2,13 @@
 #define __WORLDSTATE
 
 #define NUM_TRACKED_FRAMES 10
+#include "Scene.h"
+#include <glm/detail/type_vec3.hpp>
 
 class WorldState {
 public:
+	Scene* scene;
+
 	WorldState()
 	{
 		running = false;
@@ -13,6 +17,7 @@ public:
 	void init(int resX, int resY)
 	{
 		running = true;
+		scene = new Scene(glm::vec3(-10.0f), glm::vec3(10.0f), 1000);
 	}
 
 	void timeStep(float currentTime)
@@ -40,6 +45,7 @@ private:
 	bool running;
 	int resX, resY;
 	float frameTimes[NUM_TRACKED_FRAMES];
+	
 };
 
 #endif
