@@ -1,4 +1,4 @@
-#ifndef  __RENDERENGINE
+#ifndef __RENDERENGINE
 #define __RENDERENGINE
 
 #define TEX_TYPE GL_TEXTURE_RECTANGLE
@@ -6,9 +6,11 @@
 #include "Helpers/glm/glm.hpp"
 #include "Helpers/glm/gtc/matrix_transform.hpp"
 #include "Helpers/glm/gtc/matrix_inverse.hpp"
+#include "Helpers/GLHelper.h""
 
 #include "WorldState.h"
 #include "Helpers/glew.h"
+#include "Scene.h"
 
 class RenderEngine
 {
@@ -46,12 +48,6 @@ public:
 	}
 
 	// TODO: take in a scene object as a reference
-	void setupBuffers()
-	{
-		
-	}
-
-	// TODO: take in a scene object as a reference
 	void buildRenderBuffers()
 	{
 		
@@ -68,20 +64,63 @@ public:
 private:
 	WorldState state;
 	bool initialized;
+	GLuint vertexArray;
+
+	// TODO: take in a scene object as a reference
+	void setupBuffers(Scene &s)
+	{
+		glGenVertexArrays(1, &vertexArray);
+		glBindVertexArray(vertexArray);
+
+		GLuint idBuffer;
+		GLint idSlot = 0;
+
+		//upload element ids only
+		glGenBuffers(1, &idBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, idBuffer);
+		glBufferData(GL_ARRAY_BUFFER, s.getElementBytes(), &s.getElements()[0], GL_STATIC_DRAW);
+		glEnableVertexAttribArray(idSlot);
+		glVertexAttribPointer(idSlot, 1, GL_UNSIGNED_INT, GL_FALSE, 0, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+
+		//		//quad for render to texture
+		//		static const GLfloat quadVertexData[] = {
+		//			-1.0f, -1.0f, 0.0f,
+		//			1.0f, -1.0f, 0.0f,
+		//			1.0f, 1.0f, 0.0f,
+		//			-1.0f, -1.0f, 0.0f,
+		//			1.0f, 1.0f, 0.0f,
+		//			-1.0f, 1.0f, 0.0f,
+		//		};
+		//		checkGLError("id buffer");
+		//
+		//		glGenVertexArrays(1, &quadVertexArray);
+		//		glBindVertexArray(quadVertexArray);
+		//		GLuint quadVertexBuffer;
+		//		glGenBuffers(1, &quadVertexBuffer);
+		//		glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
+		//		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertexData), quadVertexData, GL_STATIC_DRAW);
+		//		glEnableVertexAttribArray(glGetAttribLocation(textureShader, "pos"));
+		//		glVertexAttribPointer(glGetAttribLocation(textureShader, "pos"), 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+		checkGLError("quad buffer");
+	}
 
 	float initLoader()
 	{
 		float ver = 0.0f;
-#ifdef GLEW
-		glewExperimental = GL_TRUE;
 
+#ifdef GLEW
+
+		glewExperimental = GL_TRUE;
 		GLenum err = glewInit();
 		if (GLEW_OK != err)
 		{
 			/* Problem: glewInit failed, something is seriously wrong. */
-			fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+			fprintf(stderr, "Error: %p\n", glewGetErrorString(err));
 		}
-		fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+		fprintf(stdout, "Status: Using GLEW %p\n", glewGetString(GLEW_VERSION));
 
 		if (GLEW_VERSION_1_1) { ver = 1.1f; }
 		if (GLEW_VERSION_1_2) { ver = 1.2f; }
@@ -134,6 +173,7 @@ private:
 
 		return ver;
 	}
+
 };
 
 #endif

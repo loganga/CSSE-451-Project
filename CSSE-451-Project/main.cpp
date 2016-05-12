@@ -4,10 +4,10 @@
 #define TARGET_FPS 60
 #define PRINT_FPS_INTERVAL 10.0f
 
-#define GL3W
+#define GLEW
 #ifdef GLEW
 #define GLEW_STATIC
-#include "glew.h"
+#include "Helpers/glew.h"
 #endif
 #ifdef GL3W
 #include "gl3w.h"
@@ -17,8 +17,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <SFML/Window.hpp>
-
-
 
 #include "WorldState.h"
 #include "RenderEngine.h"
@@ -67,6 +65,7 @@ public:
 private:
 	sf::Window* window;
 	sf::Clock clock;
+	
 
 	RenderEngine engine;
 	WorldState state;
