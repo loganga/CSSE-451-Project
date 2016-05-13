@@ -180,8 +180,8 @@ private:
 		for (int i = 0; i < MAX_PARTICLES; i++)
 		{
 			// generate random floats for x and y, leave z 0.
-			float x = rand() % (s.minBound[0] - s.maxBound[0] + 1) + s.minBound[0];
-			float z = rand() % (s.minBound[2] - s.maxBound[2] + 1) + s.minBound[2];
+			float x =  std::fmodf((float)rand(), (float)((s.minBound[0] - s.maxBound[0] + 1) + s.minBound[0]));
+			float z =  std::fmodf((float)rand(), (float)((s.minBound[2] - s.maxBound[2] + 1) + s.minBound[2]));
 			particles[i].pos = glm::vec3(x, 0.0f, z);
 			particles[i].size = 0.1f;
 			particles[i].r = 0.0f;
