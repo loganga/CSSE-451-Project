@@ -4,13 +4,13 @@
 #define TARGET_FPS 60
 #define PRINT_FPS_INTERVAL 10.0f
 
-#define GLEW
+#define GL3W
 #ifdef GLEW
 #define GLEW_STATIC
-#include "Helpers/glew.h"
+//#include "Helpers/glew.h"
 #endif
 #ifdef GL3W
-#include "gl3w.h"
+#include "GL/gl3w.h"
 #endif
 
 
@@ -31,6 +31,8 @@ public:
 		float lastFrame = clock.restart().asSeconds();
 		float lastPrint = lastFrame;
 		float targetFrameTime = 1.0f / (float)TARGET_FPS;
+		RenderEngine engine;
+		WorldState state;
 
 		state.init(RESOLUTION_X, RESOLUTION_Y);		
 		engine.init(state);
@@ -67,8 +69,7 @@ private:
 	sf::Clock clock;
 	
 
-	RenderEngine engine;
-	WorldState state;
+	
 
 	void updateTime()
 	{

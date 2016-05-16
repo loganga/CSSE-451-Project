@@ -1,7 +1,7 @@
 #ifndef __GLHELPER
 #define __GLHELPER
-#include <glew.h>
 #include <cstdio>
+#include "GL/gl3w.h"
 
 static void checkGLError(char const * ident = "")
 {

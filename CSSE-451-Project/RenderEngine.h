@@ -6,12 +6,13 @@
 #include "Helpers/glm/glm.hpp"
 #include "Helpers/glm/gtc/matrix_transform.hpp"
 #include "Helpers/glm/gtc/matrix_inverse.hpp"
-#include "Helpers/GLHelper.h""
+#include "Helpers/GLHelper.h"
 
+#include "GL/gl3w.h"
 #include "WorldState.h"
-#include "Helpers/glew.h"
 #include "Scene.h"
 #include "ShaderManager.h"
+
 
 #define MAX_PARTICLES 1000
 
@@ -40,11 +41,14 @@ public:
 		}
 		printf("OpenGL version %.1f is supported.\n", ver);
 
-		state.scene->generateParticleLayer();
-		state.scene->updateParticles();
+		state.scene.generateParticleLayer();
+		state.scene.updateParticles();
 
 		glEnable(GL_DEPTH_TEST);
+		glCullFace(GL_BACK);
+		glEnable(GL_CULL_FACE);
 
+		setupShader();
 		setupBuffers();
 		buildRenderBuffers();
 	}
@@ -55,14 +59,14 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT);
 		checkGLError("clear");
 
-		state.scene->updateParticles();
+		state.scene.updateParticles();
 		updateBuffers(state);
 
 		glVertexAttribDivisor(0, 0); // particles vertices : always reuse the same 4 vertices -> 0
 		glVertexAttribDivisor(1, 1); // positions : one per quad (its center) -> 1
 		glVertexAttribDivisor(2, 1); // color : one per quad -> 1
 
-		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, state.scene->particleCount);
+		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, state.scene.particleCount);
 	}
 
 	void setupShader()
@@ -117,19 +121,19 @@ private:
 		glGenBuffers(1, &positionBuffer);
 		glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
 		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
-		positionSlot = glGetAttribLocation(shaderProg, "pos");
-		glEnableVertexAttribArray(positionSlot);
-		glVertexAttribPointer(positionSlot, 4, GL_FLOAT, GL_FALSE, 0, 0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+//		positionSlot = glGetAttribLocation(shaderProg, "pos");
+//		glEnableVertexAttribArray(positionSlot);
+//		glVertexAttribPointer(positionSlot, 4, GL_FLOAT, GL_FALSE, 0, 0);
+//		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		checkGLError("setup");
 
 		glGenBuffers(1, &colorBuffer);
 		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
 		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
-		colorBuffer = glGetAttribLocation(shaderProg, "colorIn");
-		glEnableVertexAttribArray(colorSlot);
-		glVertexAttribPointer(positionSlot, 4, GL_FLOAT, GL_FALSE, 0, 0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+//		colorBuffer = glGetAttribLocation(shaderProg, "colorIn");
+//		glEnableVertexAttribArray(colorSlot);
+//		glVertexAttribPointer(positionSlot, 4, GL_FLOAT, GL_FALSE, 0, 0);
+//		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		checkGLError("setup");
 	}
@@ -138,11 +142,12 @@ private:
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
 		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, state.scene->particleCount * sizeof(GLfloat) * 4, s.scene->positionBufferData);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, state.scene.particleCount * sizeof(GLfloat) * 4, s.scene.positionBufferData);
 
 		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
 		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, state.scene->particleCount * sizeof(GLubyte) * 4, s.scene->colorBufferData);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, state.scene.particleCount * sizeof(GLubyte) * 4, s.scene.colorBufferData);
+		checkGLError("updating buffers failed");
 	}
 
 	void buildRenderBuffers()
@@ -182,6 +187,7 @@ private:
 			0, // stride
 			(void*)0 // array buffer offset
 			);
+		checkGLError("building render buffers failed");
 	}
 
 	float initLoader()
@@ -192,6 +198,7 @@ private:
 
 		glewExperimental = GL_TRUE;
 		GLenum err = glewInit();
+		checkGLError("dicks");
 		if (GLEW_OK != err)
 		{
 			/* Problem: glewInit failed, something is seriously wrong. */
@@ -219,6 +226,7 @@ private:
 		if (GLEW_VERSION_4_3) { ver = 4.3f; }
 		if (GLEW_VERSION_4_4) { ver = 4.4f; }
 		if (GLEW_VERSION_4_5) { ver = 4.5f; }
+
 #endif
 
 #ifdef GL3W
@@ -247,7 +255,7 @@ private:
 		if (gl3wIsSupported(4, 4)) { ver = 4.4f; }
 		if (gl3wIsSupported(4, 5)) { ver = 4.5f; }
 #endif
-
+//		checkGLError("dicks");
 		return ver;
 	}
 

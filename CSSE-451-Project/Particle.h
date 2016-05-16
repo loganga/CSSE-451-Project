@@ -4,8 +4,8 @@
 
 class Particle {
 public:
-	glm::vec3 pos, vel;
-	GLfloat r, g, b, a, size;
+	glm::vec3 pos, vel, acc;
+	GLfloat r, g, b, a, size, density;
 
 	Particle() {}
 

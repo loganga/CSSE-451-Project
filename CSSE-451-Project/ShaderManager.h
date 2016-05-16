@@ -3,7 +3,6 @@
 
 #include <SFML/Window.hpp>
 #include <stdio.h>
-#include <glew.h>
 
 #if _MSC_VER
 #define snprintf _snprintf

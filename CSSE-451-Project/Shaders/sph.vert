@@ -6,5 +6,5 @@ in vec3 colorIn;
 smooth out vec4 smoothColor;
 
 void main() {
-	smoothColor = colorIn
+	smoothColor = vec4(colorIn, 1);
 }

@@ -4,6 +4,7 @@
 #include "Particle.h"
 #include <SFML/System/Vector3.hpp>
 #include <glm/detail/type_vec3.hpp>
+#include "GL/glcorearb.h"
 
 class Scene
 {
@@ -14,9 +15,6 @@ public:
 	int particleCount;
 	GLfloat* positionBufferData;
 	GLfloat* colorBufferData;
-//	std::vector<Particle> particles;
-	std::vector<GLfloat> particleVerts; // 3 per particle
-//	std::vector<GLfloat> particleMass; // 1 per particle
 	glm::vec3 minBound;
 	glm::vec3 maxBound;
 
@@ -27,6 +25,10 @@ public:
 		this->minBound = minBound;
 		this->maxBound = maxBound;
 		this->maxParticles = maxParticles;
+	}
+
+	void init()
+	{
 		particles = new Particle[maxParticles];
 		positionBufferData = new GLfloat[maxParticles * 4];
 		colorBufferData = new GLfloat[maxParticles * 4];
@@ -55,7 +57,7 @@ public:
 	{
 		for (int i = 0; i < maxParticles; i++)
 		{
-			Particle& p = particles[i];
+			Particle p = particles[i];
 			// do physics simulations here!
 
 			// Use this when camera data has been made available in RenderEngine
@@ -75,7 +77,7 @@ public:
 
 	GLfloat* getVertices()
 	{
-		return &particleVerts[0];
+		
 	}
 
 	void getElementBytes()
