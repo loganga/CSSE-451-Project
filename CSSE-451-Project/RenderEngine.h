@@ -11,6 +11,7 @@
 #include "WorldState.h"
 #include "Helpers/glew.h"
 #include "Scene.h"
+#include "ShaderManager.h"
 
 #define MAX_PARTICLES 1000
 
@@ -21,13 +22,12 @@ public:
 	// Refactor a bunch of the Particle data to be in the Scene class.
 	// Updates for particles should be called through the WorldState and
 	// delegated to the scene.
+	const static GLfloat vertexBufferData[];
 
 	RenderEngine()
 	{
 		initialized = false;
 	}
-
-	void render(WorldState sate);
 
 	void init(WorldState &state)
 	{
@@ -40,8 +40,8 @@ public:
 		}
 		printf("OpenGL version %.1f is supported.\n", ver);
 
-		generateParticles(*state.scene);
-		updateParticles();
+		state.scene->generateParticleLayer();
+		state.scene->updateParticles();
 
 		glEnable(GL_DEPTH_TEST);
 
@@ -49,25 +49,100 @@ public:
 		buildRenderBuffers();
 	}
 
-	void display(WorldState state)
+	void display(WorldState &state)
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		checkGLError("clear");
 
-		updateParticles();
-		updateBuffers();
+		state.scene->updateParticles();
+		updateBuffers(state);
 
 		glVertexAttribDivisor(0, 0); // particles vertices : always reuse the same 4 vertices -> 0
 		glVertexAttribDivisor(1, 1); // positions : one per quad (its center) -> 1
 		glVertexAttribDivisor(2, 1); // color : one per quad -> 1
 
-		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, particleCount);
+		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, state.scene->particleCount);
 	}
 
 	void setupShader()
 	{
-		// TODO: DOES NOTHING, NEEDS SHADERS
+		char const * vertPath = "Shaders/sph.vert";
+		char const * fragPath = "Shaders/sph.frag";
+
+		shaderProg = ShaderManager::shaderFromFile(&vertPath, &fragPath, 1, 1);
+
+		checkGLError("shader");
+	}
+
+	~RenderEngine()
+	{
+		if (initialized)
+		{
+			glDeleteBuffers(1, &vertexBuffer);
+			glDeleteBuffers(1, &positionBuffer);
+			glDeleteBuffers(1, &colorBuffer);
+		}
+	}
+
+private:
+	WorldState state;
+	bool initialized;
+
+	GLuint vertexArray;
+	GLuint vertexBuffer;
+	// common vertex data quad, positions are what differ
+	GLint vertexSlot;
+
+	GLuint positionBuffer;
+	GLint positionSlot;
+
+	GLuint colorBuffer;
+	GLint colorSlot;
+
+	GLuint shaderProg;
+
+
+	void setupBuffers()
+	{
+		glGenVertexArrays(1, &vertexArray);
+		glBindVertexArray(vertexArray);
+
+		glGenBuffers(1, &vertexBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 12, vertexBufferData, GL_STATIC_DRAW);
+//		vertexSlot = glGetAttribLocation(shaderProg, "pos");
+		checkGLError("setup");
+
+		glGenBuffers(1, &positionBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
+		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+		positionSlot = glGetAttribLocation(shaderProg, "pos");
+		glEnableVertexAttribArray(positionSlot);
+		glVertexAttribPointer(positionSlot, 4, GL_FLOAT, GL_FALSE, 0, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		checkGLError("setup");
+
+		glGenBuffers(1, &colorBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
+		colorBuffer = glGetAttribLocation(shaderProg, "colorIn");
+		glEnableVertexAttribArray(colorSlot);
+		glVertexAttribPointer(positionSlot, 4, GL_FLOAT, GL_FALSE, 0, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		checkGLError("setup");
+	}
+
+	void updateBuffers(WorldState &s)
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
+		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, state.scene->particleCount * sizeof(GLfloat) * 4, s.scene->positionBufferData);
+
+		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, state.scene->particleCount * sizeof(GLubyte) * 4, s.scene->colorBufferData);
 	}
 
 	void buildRenderBuffers()
@@ -107,113 +182,6 @@ public:
 			0, // stride
 			(void*)0 // array buffer offset
 			);
-	}
-
-	~RenderEngine()
-	{
-		if (initialized)
-		{
-//			glDeleteBuffers(1, &positionBuffer);
-		}
-	}
-
-private:
-	WorldState state;
-	bool initialized;
-	GLuint vertexArray;
-	GLuint vertexBuffer;
-
-	GLuint positionBuffer;
-	GLfloat* positionBufferData = new GLfloat[MAX_PARTICLES * 4];
-
-	GLuint colorBuffer;
-	GLubyte* colorBufferData = new GLubyte[MAX_PARTICLES * 4];
-
-	// common vertex data quad, positions are what differ
-	const GLfloat vertexBufferData[12] = {
-		-0.5f, -0.5f, 0.0f,
-		0.5f, -0.5f, 0.0f,
-		-0.5f, 0.5f, 0.0f,
-		0.5f, 0.5f, 0.0f,
-	};
-
-	int particleCount;
-	// should probably be in its own class rather than a struct
-	struct Particle
-	{
-		glm::vec3 pos, vel;
-		unsigned char r, g, b, a;
-		float size, angle, weight;
-	};
-	Particle particles[MAX_PARTICLES];
-
-	void setupBuffers()
-	{
-		glGenBuffers(1, &vertexBuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertexBufferData), vertexBufferData, GL_STATIC_DRAW);
-
-		glGenBuffers(1, &positionBuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
-		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
-
-		glGenBuffers(1, &colorBuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
-
-		checkGLError("quad buffer");
-	}
-
-	void updateBuffers()
-	{
-		glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
-		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, particleCount * sizeof(GLfloat) * 4, positionBufferData);
-
-		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-		glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, particleCount * sizeof(GLubyte) * 4, colorBufferData);
-	}
-
-	void generateParticles(Scene &s)
-	{
-		for (int i = 0; i < MAX_PARTICLES; i++)
-		{
-			// generate random floats for x and y, leave z 0.
-			float x =  std::fmodf((float)rand(), (float)((s.minBound[0] - s.maxBound[0] + 1) + s.minBound[0]));
-			float z =  std::fmodf((float)rand(), (float)((s.minBound[2] - s.maxBound[2] + 1) + s.minBound[2]));
-			particles[i].pos = glm::vec3(x, 0.0f, z);
-			particles[i].size = 0.1f;
-			particles[i].r = 0.0f;
-			particles[i].g = 0.0f;
-			particles[i].b = 1.0f;
-			particles[i].a = 1.0f;
-			particles[i].vel = glm::vec3(0.0f);
-
-			particleCount++;
-		}
-	}
-
-	void updateParticles()
-	{
-		for (int i = 0; i < MAX_PARTICLES; i++)
-		{
-			Particle& p = particles[i];
-			// do physics simulations here!
-
-			// Use this when camera data has been made available in RenderEngine
-//			p.distFromCam = glm::length2(p.pos - cameraPosition);
-
-			positionBufferData[4 * particleCount + 0] = p.pos.x;
-			positionBufferData[4 * particleCount + 1] = p.pos.y;
-			positionBufferData[4 * particleCount + 2] = p.pos.z;
-			positionBufferData[4 * particleCount + 3] = p.size;
-
-			colorBufferData[4 * particleCount + 0] = p.r;
-			colorBufferData[4 * particleCount + 1] = p.g;
-			colorBufferData[4 * particleCount + 2] = p.b;
-			colorBufferData[4 * particleCount + 3] = p.a;
-		}
 	}
 
 	float initLoader()
